@@ -1,0 +1,8 @@
+fastapi
+uvicorn[standard]
+pyodbc
+passlib[argon2]
+python-jose[cryptography]
+python-multipart
+pydantic[email]
+python-dotenv

@@ -1,0 +1,4 @@
+python-telegram-bot
+pyodbc
+passlib[argon2]
+python-dotenv

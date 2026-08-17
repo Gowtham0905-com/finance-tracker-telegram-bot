@@ -1,0 +1,19 @@
+# Secrets - never commit these
+.env
+webapp/.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Logs
+bot.log
+*.log
+
+# OS/editor clutter
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

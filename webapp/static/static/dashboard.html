@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Dashboard</title>
+<link rel="stylesheet" href="/static/css/style.css">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+</head>
+<body class="dashboard-page">
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark">₹</span>
+      <span class="brand-name">Ledger</span>
+    </div>
+    <div class="topbar-actions">
+      <select id="range-select">
+        <option value="30">Last 30 days</option>
+        <option value="90">Last 90 days</option>
+        <option value="365">Last 12 months</option>
+        <option value="all" selected>All time</option>
+        <option value="custom">Custom range</option>
+      </select>
+      <div id="custom-range" class="custom-range hidden">
+        <input type="date" id="range-start">
+        <span class="range-sep">to</span>
+        <input type="date" id="range-end">
+        <button id="apply-range-btn" class="ghost-btn">Apply</button>
+      </div>
+      <div class="reports-menu">
+        <button id="reports-btn" class="ghost-btn">Reports ▾</button>
+        <div id="reports-dropdown" class="reports-dropdown hidden">
+          <button id="export-transactions-btn">Transactions CSV</button>
+          <button id="export-summary-btn">Summary CSV</button>
+        </div>
+      </div>
+      <button id="logout-btn" class="ghost-btn">Log out</button>
+    </div>
+  </header>
+
+  <main class="dashboard-main">
+    <section class="summary-cards">
+      <div class="card">
+        <span class="card-label">Income</span>
+        <span class="card-value income" id="total-income">—</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Expenses</span>
+        <span class="card-value expense" id="total-expense">—</span>
+      </div>
+      <div class="card">
+        <span class="card-label">Balance</span>
+        <span class="card-value balance" id="total-balance">—</span>
+      </div>
+    </section>
+
+    <section class="charts-row">
+      <div class="chart-card">
+        <h3 id="trend-title">Income vs Expense — monthly</h3>
+        <canvas id="trend-chart"></canvas>
+      </div>
+      <div class="chart-card">
+        <h3>Expenses by category</h3>
+        <canvas id="category-chart"></canvas>
+      </div>
+    </section>
+
+    <section class="txn-card">
+      <h3>Recent transactions</h3>
+      <table id="txn-table">
+        <thead><tr><th>Date</th><th>Type</th><th>Label</th><th>Amount</th></tr></thead>
+        <tbody></tbody>
+      </table>
+      <p id="txn-empty" class="empty-state hidden">No transactions yet — log one from the Telegram bot to see it here.</p>
+    </section>
+  </main>
+
+<script src="/static/js/dashboard.js"></script>
+</body>
+</html>

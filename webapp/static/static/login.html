@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ledger — Sign In</title>
+<link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="auth-page">
+<div class="auth-split">
+  <div class="auth-illustration">
+    <svg viewBox="0 0 420 420" xmlns="http://www.w3.org/2000/svg">
+      <!-- Soft background circle -->
+      <circle cx="210" cy="210" r="180" fill="#FFFFFF" opacity="0.5"/>
+
+      <!-- Bar chart -->
+      <rect x="70" y="240" width="34" height="100" rx="6" fill="#1FA97D" opacity="0.85"/>
+      <rect x="118" y="190" width="34" height="150" rx="6" fill="#1FA97D"/>
+      <rect x="166" y="220" width="34" height="120" rx="6" fill="#C08A2E" opacity="0.85"/>
+
+      <!-- Upward trend line -->
+      <polyline points="70,175 118,150 166,160 214,110 262,95"
+                fill="none" stroke="#E05A3E" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+      <circle cx="262" cy="95" r="7" fill="#E05A3E"/>
+      <circle cx="214" cy="110" r="5" fill="#E05A3E" opacity="0.7"/>
+      <circle cx="166" cy="160" r="5" fill="#E05A3E" opacity="0.7"/>
+      <circle cx="118" cy="150" r="5" fill="#E05A3E" opacity="0.7"/>
+
+      <!-- Coin stack -->
+      <ellipse cx="320" cy="300" rx="34" ry="12" fill="#C08A2E"/>
+      <ellipse cx="320" cy="286" rx="34" ry="12" fill="#D6A548"/>
+      <ellipse cx="320" cy="272" rx="34" ry="12" fill="#C08A2E"/>
+      <ellipse cx="320" cy="258" rx="34" ry="12" fill="#D6A548"/>
+      <text x="320" y="263" font-family="monospace" font-size="14" fill="#8A5F1E" text-anchor="middle">₹</text>
+
+      <!-- Donut chart -->
+      <g transform="translate(300,150)">
+        <circle r="42" fill="none" stroke="#DFE7E2" stroke-width="16"/>
+        <circle r="42" fill="none" stroke="#1FA97D" stroke-width="16"
+                stroke-dasharray="164 264" stroke-dashoffset="0" transform="rotate(-90)"/>
+        <circle r="42" fill="none" stroke="#E05A3E" stroke-width="16"
+                stroke-dasharray="100 264" stroke-dashoffset="-164" transform="rotate(-90)"/>
+      </g>
+
+      <!-- Floating card -->
+      <rect x="60" y="60" width="140" height="60" rx="10" fill="#FFFFFF" stroke="#DFE7E2" stroke-width="1.5"/>
+      <text x="76" y="86" font-family="monospace" font-size="11" fill="#6B7C73">Balance</text>
+      <text x="76" y="106" font-family="monospace" font-size="18" fill="#1E2A24" font-weight="bold">₹12,480</text>
+
+      <!-- Base line -->
+      <line x1="50" y1="345" x2="370" y2="345" stroke="#DFE7E2" stroke-width="2"/>
+    </svg>
+  </div>
+
+  <div class="auth-form-panel">
+    <div class="auth-card">
+      <div class="brand">
+        <span class="brand-mark">₹</span>
+        <span class="brand-name">Ledger</span>
+      </div>
+      <p class="auth-sub">Your income &amp; expenses, tracked from chat to chart.</p>
+
+      <form id="login-form" class="auth-form">
+        <label for="login-username">Login ID</label>
+        <input type="text" id="login-username" required autocomplete="username">
+        <label for="login-password">Password</label>
+        <input type="password" id="login-password" required autocomplete="current-password">
+        <button type="submit" class="primary-btn">Log in</button>
+        <p class="form-error" id="login-error"></p>
+      </form>
+
+      <p class="auth-footnote">New here? Message the Telegram bot and send <strong>/start</strong> — it'll ask for your name, then a login ID and password for this dashboard. Come back here once that's done.</p>
+    </div>
+  </div>
+</div>
+
+<script>
+const loginForm = document.getElementById('login-form');
+
+async function handleAuthResponse(res, errorEl) {
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({}));
+    errorEl.textContent = body.detail || 'Something went wrong. Please try again.';
+    return null;
+  }
+  return res.json();
+}
+
+loginForm.addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const errorEl = document.getElementById('login-error');
+  errorEl.textContent = '';
+  const body = new URLSearchParams();
+  body.set('username', document.getElementById('login-username').value);
+  body.set('password', document.getElementById('login-password').value);
+
+  const res = await fetch('/api/login', { method: 'POST', body });
+  const data = await handleAuthResponse(res, errorEl);
+  if (data) {
+    localStorage.setItem('token', data.access_token);
+    window.location.href = '/dashboard';
+  }
+});
+</script>
+</body>
+</html>
