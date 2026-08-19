@@ -531,4 +531,10 @@ app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 app.add_error_handler(global_error_handler)
 
 logger.info("Bot is running...")
-app.run_polling()
+
+async def run_bot():
+    """Starts the bot's polling loop without blocking the event loop,
+    so it can run alongside the FastAPI web server in the same process."""
+    await app.initialize()
+    await app.start()
+    await app.updater.start_polling()

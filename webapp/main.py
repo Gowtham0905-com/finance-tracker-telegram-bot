@@ -12,12 +12,17 @@ import psycopg2
 
 import database as db
 import auth
+import asyncio 
+from bot import run_bot
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Expense Tracker Dashboard")
 
+@app.on_event("startup")
+async def start_telegram_bot():
+    asyncio.create_task(run_bot())
 
 
 # ---------- Request/response schemas ----------
