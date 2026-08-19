@@ -2,12 +2,13 @@ import logging
 import csv
 import io
 from datetime import date
+
 from fastapi import FastAPI, HTTPException, Depends, status
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse, StreamingResponse
+from fastapi.responses import FileResponse, StreamingResponse, JSONResponse
 from fastapi.security import OAuth2PasswordRequestForm
 from pydantic import BaseModel
-import pyodbc
+import psycopg2
 
 import database as db
 import auth
@@ -17,6 +18,8 @@ logger = logging.getLogger(__name__)
 
 app = FastAPI(title="Expense Tracker Dashboard")
 
+
+
 # ---------- Request/response schemas ----------
 
 class Token(BaseModel):
@@ -25,14 +28,16 @@ class Token(BaseModel):
 
 
 # ---------- Error handling ----------
-# Any DB failure returns a clean 503 instead of a raw stack trace to the browser.
 
-@app.exception_handler(pyodbc.Error)
+@app.exception_handler(psycopg2.Error)
 async def db_error_handler(request, exc):
-    logger.error(f"Database error on {request.url}: {exc}", exc_info=True)
-    return HTTPException(status_code=503, detail="Database temporarily unavailable. Please try again.")
-
-
+    print("DATABASE ERROR:", repr(exc), flush=True)
+    return JSONResponse(
+        status_code=500,
+        content={
+            "detail": "Something went wrong. Please try again later."
+        }
+    )
 # ---------- Auth routes ----------
 # Note: there is no /api/signup route. Accounts are created via the
 # Telegram bot's /start flow, which collects name, email, and password

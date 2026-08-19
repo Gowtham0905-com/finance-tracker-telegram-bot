@@ -2,7 +2,7 @@ import logging
 import os
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, CallbackQueryHandler, ContextTypes, filters
-import pyodbc
+import psycopg2
 import calendar
 from datetime import date
 from passlib.context import CryptContext
@@ -16,10 +16,11 @@ TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN")
 if not TOKEN:
     raise RuntimeError("TELEGRAM_BOT_TOKEN is not set. Copy .env.example to .env and fill it in.")
 
-DB_SERVER = os.environ.get("DB_SERVER", "localhost\\SQLEXPRESS")
-DATABASE_NAME = os.environ.get("DB_NAME", "Income_Expense_Project")
+DATABASE_URL = os.environ.get("DATABASE_URL")
 
-# Password hashing uses Argon2. The website's auth.py uses the same scheme
+if not DATABASE_URL:
+    raise RuntimeError("DATABASE_URL is not set.")# Password hashing uses Argon2. The website's auth.py uses the same scheme
+
 # so passwords created here can be verified there and vice versa.
 pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
 
@@ -50,91 +51,165 @@ logger = logging.getLogger(__name__)
 # ---------- Database helpers ----------
 
 def get_connection():
-    # Raises pyodbc.Error if it fails to connect - this is intentional.
-    # The @safe_handler wrapper on each command/message handler catches it.
-    return pyodbc.connect(
-        'DRIVER={ODBC Driver 17 for SQL Server};'
-        f'SERVER={DB_SERVER};'
-        f'DATABASE={DATABASE_NAME};'
-        'Trusted_Connection=yes;'
-    )
+    return psycopg2.connect(DATABASE_URL)
 
 def get_user_id(telegram_id):
     conn = get_connection()
+
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT UserID FROM Users WHERE TelegramUserID = ?", (telegram_id,))
+
+        cursor.execute(
+            '''
+            SELECT "UserID"
+            FROM users
+            WHERE "TelegramUserID" = %s
+            ''',
+            (telegram_id,)
+        )
+
         row = cursor.fetchone()
+
         return row[0] if row else None
+
     finally:
         conn.close()
+
 
 def create_user(telegram_id, name, login_id, password_hash):
+
     conn = get_connection()
+
     try:
         cursor = conn.cursor()
+
         cursor.execute(
-            "INSERT INTO Users (TelegramUserID, Username, LoginID, PasswordHash) VALUES (?, ?, ?, ?)",
+            '''
+            INSERT INTO users
+                ("TelegramUserID", "Username", "LoginID", "PasswordHash")
+            VALUES
+                (%s, %s, %s, %s)
+            ''',
             (telegram_id, name, login_id, password_hash)
         )
+
         conn.commit()
+
     finally:
         conn.close()
+
 
 def login_id_already_taken(login_id):
+
     conn = get_connection()
+
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT UserID FROM Users WHERE LoginID = ?", (login_id,))
+
+        cursor.execute(
+            '''
+            SELECT "UserID"
+            FROM users
+            WHERE "LoginID" = %s
+            ''',
+            (login_id,)
+        )
+
         return cursor.fetchone() is not None
+
     finally:
         conn.close()
+
 
 def get_login_status(user_id):
-    """Returns True if this user already has a LoginID set, False otherwise."""
+
     conn = get_connection()
+
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT LoginID FROM Users WHERE UserID = ?", (user_id,))
+
+        cursor.execute(
+            '''
+            SELECT "LoginID"
+            FROM users
+            WHERE "UserID" = %s
+            ''',
+            (user_id,)
+        )
+
         row = cursor.fetchone()
+
         return row is not None and row[0] is not None
+
     finally:
         conn.close()
+
 
 def set_login_credentials(user_id, login_id, password_hash):
-    """For an EXISTING user (already has a name/UserID) adding website login later."""
+
     conn = get_connection()
+
     try:
         cursor = conn.cursor()
+
         cursor.execute(
-            "UPDATE Users SET LoginID = ?, PasswordHash = ? WHERE UserID = ?",
+            '''
+            UPDATE users
+            SET "LoginID" = %s,
+                "PasswordHash" = %s
+            WHERE "UserID" = %s
+            ''',
             (login_id, password_hash, user_id)
         )
+
         conn.commit()
+
     finally:
         conn.close()
+
 
 def insert_expense(user_id, category, amount, entry_date):
+
     conn = get_connection()
+
     try:
         cursor = conn.cursor()
+
         cursor.execute(
-            "INSERT INTO Expenses (UserID, Category, Amount, ExpenseDate) VALUES (?, ?, ?, ?)",
+            '''
+            INSERT INTO expenses
+                ("UserID", "Category", "Amount", "ExpenseDate")
+            VALUES
+                (%s, %s, %s, %s)
+            ''',
             (user_id, category, amount, entry_date)
         )
+
         conn.commit()
+
     finally:
         conn.close()
 
+
 def insert_income(user_id, source, amount, entry_date):
+
     conn = get_connection()
+
     try:
         cursor = conn.cursor()
+
         cursor.execute(
-            "INSERT INTO Income (UserID, Source, Amount, IncomeDate) VALUES (?, ?, ?, ?)",
+            '''
+            INSERT INTO income
+                ("UserID", "Source", "Amount", "IncomeDate")
+            VALUES
+                (%s, %s, %s, %s)
+            ''',
             (user_id, source, amount, entry_date)
         )
+
         conn.commit()
+
     finally:
         conn.close()
 
@@ -151,7 +226,7 @@ def safe_handler(func):
     async def wrapper(update: Update, context: ContextTypes.DEFAULT_TYPE):
         try:
             await func(update, context)
-        except pyodbc.Error as e:
+        except psycopg2.Error as e:
             logger.error(f"[DB ERROR] in {func.__name__}: {e}", exc_info=True)
             target = update.effective_message
             if target:
